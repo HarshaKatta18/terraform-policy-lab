@@ -1,7 +1,7 @@
 provider "aws" {
   region = "ap-northeast-1"
 }
-
+# test PR
 # 🔹 Add random suffix for unique bucket name
 resource "random_id" "suffix" {
   byte_length = 4
