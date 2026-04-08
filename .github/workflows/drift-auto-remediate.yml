@@ -1,0 +1,42 @@
+name: Auto Remediate Drift
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # every 6 hours
+  workflow_dispatch:
+
+jobs:
+  remediate:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ap-northeast-1
+
+    defaults:
+      run:
+        working-directory: drift-demo   # change if needed
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -detailed-exitcode -no-color -out=tfplan
+        continue-on-error: true
+
+      - name: Apply if drift detected
+        if: steps.plan.outcome == 'failure'
+        run: terraform apply -auto-approve tfplan
+
+      - name: Notify
+        if: steps.plan.outcome == 'failure'
+        run: echo "Drift was automatically remediated"
